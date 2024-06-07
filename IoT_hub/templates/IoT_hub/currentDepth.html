@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water tank depth</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        p, h1 {
+            text-align: center;
+            height: min-content;
+            margin: 3px;
+        }
+        .depth {
+            font-size: 7vw;
+        }
+    </style>
+</head>
+<body>
+    <table>
+        <tbody>
+            <tr><td><h1>Water Tank Depth</h1></td></tr>
+            <tr><td><p class="depth">{{ depth }} cm</p></td></tr>
+            <tr><td><p>{{ date }}</p></td></tr>
+        </tbody>
+    </table>
+    
+</body>
+</html>
