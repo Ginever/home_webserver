@@ -10,9 +10,9 @@ def on_connect(mqtt_client, userdata, flags, rc):
         print('Bad connection. Code:', rc)
 
 def on_message(mqtt_client, userdata, msg):
-    try:
+    try: 
         from IoT_hub.models import WaterTankDepth
-        payload = float(msg.payload)
+        payload = float(msg.payload)  
         WaterTankDepth.objects.create(depth=payload).save()
 
         print(f'Saved message on topic: {msg.topic} with payload: {msg.payload}')

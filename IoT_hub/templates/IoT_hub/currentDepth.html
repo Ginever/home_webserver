@@ -1,8 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% load IoT_hub_extras %}
     <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Water tank depth</title>
+    <script type="text/javascript" src="https://cdn.fusioncharts.com/fusioncharts/latest/fusioncharts.js"></script>
+    <script type="text/javascript" src="https://cdn.fusioncharts.com/fusioncharts/latest/themes/fusioncharts.theme.fusion.js"></script>
+    <script>
+       FusionCharts.ready(function(){
+			var chartObj = new FusionCharts({
+            type: 'cylinder',
+            dataFormat: 'json',
+            renderAt: 'chart-container',
+            width: '350',
+            height: '370',
+            dataSource: {
+                "chart": {
+                    "theme": "fusion",
+                    "caption": "",
+                    "subcaption": "",
+                    "lowerLimit": "0",
+                    "upperLimit": "24000",
+                    "lowerLimitDisplay": "Empty",
+                    "upperLimitDisplay": "Full",
+                    "numberSuffix": " ltrs",
+                    "showValue": "1",
+                    "chartBottomMargin": "45",
+                    "showValue": "0",
+                    "refreshInterval": "1",
+                    "refreshInstantly": "1",
+                    "cylFillColor": "#35d1fd",
+                    "cyloriginx": "125",
+                    "cyloriginy": "270",
+                    "cylradius": "120",
+                    "cylheight": "250"
+                },
+                "value": "{{water_liters}}" ,
+                "annotations": {
+                    "origw": "400",
+                    "origh": "290",
+                    "autoscale": "1",
+                    "groups": [{
+                        "id": "range",
+                        "items": [{
+                            "id": "rangeBg",
+                            "type": "rectangle",
+                            "x": "$canvasCenterX-75",
+                            "y": "$chartEndY-40",
+                            "tox": "$canvasCenterX +55",
+                            "toy": "$chartEndY-80",
+                            "fillcolor": "#35d1fd"
+                        }, {
+                            "id": "rangeText",
+                            "type": "Text",
+                            "fontSize": "20",
+                            "fillcolor": "#333333",
+                            "text": "Loading...",
+                            "x": "$chartCenterX-60",
+                            "y": "$chartEndY-60"
+                        }]
+                    }]
+                }
+
+            },
+            "events": {
+                "rendered": function(evtObj, argObj) {
+                
+                    evtObj.sender.chartInterval = setInterval(function() {
+                        evtObj.sender.feedData && evtObj.sender.feedData("&value=");
+                    }, 2000);
+                },
+                /* Using real time update event to update the annotation */
+                
+                //showing available volume in tank (setting colors as per available volume)
+                "realTimeUpdateComplete": function(evt, arg) {
+                    var annotations = evt.sender.annotations,
+                        dataVal = evt.sender.getData(),
+                        colorVal = (dataVal >= 600) ? "#6caa03" : ((dataVal <= 300) ? "#e44b02" : "#f8bd1b");
+                    //Updating the volume value
+                    annotations && annotations.update('rangeText', {
+                        "text": dataVal + " ltrs"
+                    });
+                    //setting background color of annotation as per value
+                    annotations && annotations.update('rangeBg', {
+                        "fillcolor": colorVal
+                    });
+
+                },
+                "disposed": function(evt, arg) {
+                    clearInterval(evt.sender.chartInterval);
+                }
+            }
+        }
+        );
+			chartObj.render();
+		}); 
+    </script>
     <style>
         body {
             display: flex;
@@ -18,14 +111,138 @@
         .depth {
             font-size: 7vw;
         }
+        table{
+            border-spacing: 0;
+            position: relative;
+        }
+        .histogram{
+            padding: 0;
+        }
+        .table_reversed{
+            display: flex;
+            flex-direction: row-reverse;
+        }        
+        .left-align{
+            text-align: left;
+        }
+        .histogram-text{
+            visibility: hidden;
+        }
+        div{
+            display: inline-block;
+            width: 50%;
+            text-align: center;
+            height: 100%;
+        }
+        .current-text{
+            height: 370px;
+        }
+        .chart-container{
+            float: right;
+        }
+        .rotate {
+            writing-mode:vertical-rl;
+            height: max-content;
+            text-align: center;
+        }
+        .center{
+            display: flex;
+            justify-content: center;
+        }
+
+        @media (max-width:700){
+            div{
+                width: 100%;
+            }
+        }
+
     </style>
 </head>
 <body>
     <table>
         <tbody>
-            <tr><td><h1>Water Tank Depth</h1></td></tr>
-            <tr><td><p class="depth">{{ depth }} cm</p></td></tr>
-            <tr><td><p>{{ date }}</p></td></tr>
+            <tr><td>
+                <div class="current-text">
+                    <table height="100%" width="100%"><tbody>
+                        <tr><td><h1>Water Tank Depth</h1></td></tr>
+                        <tr><td><p class="depth">{{ depth }} cm</p></td></tr>
+                        <tr><td><p>{{ date }}</p></td></tr>
+                    </tbody></table>
+                </div>
+                <div class="chart-container" width="min-content" id="chart-container"></div>
+            </td></tr>
+
+            <tr><td><p class="histogram-text" id="histogram-depth">{% get_first_depth depth_list %} cm</p></td></tr>
+            <tr><td><p class="histogram-text" id="histogram-date">{% get_first_date depth_list %}</p></td></tr>
+            <tr><td>
+                <table height="min-content" id="histogram-outer">
+                    <tbody class="table_reversed">
+                        <td height="min-content"><table><tbody>
+                            {% for y_label in histogram_y_labels reversed %}
+                               <tr><td><p>{{y_label}}</p></td></tr> 
+                            {% endfor %}
+                        </tbody></table></td>
+                        {% if depth_list %}
+                            {% for depth in depth_list reversed %}
+                                <td class="histogram">
+                                    <table>
+                                        <tbody>
+                                            <tr><td class="histogram">
+                                                <svg class="histogram-column" id="histogram-{{forloop.counter}}" width="100%" height="{% get_axis_height histogram_y_labels %}">
+                                                    <rect x="0", y="{% get_histogram_offset max_depth depth.depth %}" width="100%" height="100%" fill="blue"/>
+                                                </svg>
+                                                <script>
+                                                    var svg = document.getElementById("histogram-{{forloop.counter}}");
+                                                    var outer = document.getElementById("histogram-outer");
+
+                                                    svg.addEventListener("mouseover", function(event){
+                                                        var depth = document.getElementById("histogram-depth");
+                                                        var date = document.getElementById("histogram-date");
+                                                        
+                                                        outer_width = outer.getBoundingClientRect().width;
+                                                        padding = outer.getBoundingClientRect().left;
+                                                        
+                                                        depth.innerHTML = "{{ depth.depth }} cm";
+                                                        date.innerHTML =  "{{ depth.date }}";
+
+                                                        depth.style.visibility = "visible";
+                                                        date.style.visibility = "visible";
+                                                        
+                                                        if (outer_width/2 < event.clientX){
+                                                            depth.style.textAlign = "right";
+                                                            date.style.textAlign = "right";
+                                                            depth.style.marginRight = outer_width - event.clientX + "px";
+                                                            date.style.marginRight = outer_width - event.clientX + "px";
+                                                            depth.style.marginLeft = 0;
+                                                            date.style.marginLeft = 0;
+                                                        } else {
+                                                            depth.style.textAlign = "left";
+                                                            date.style.textAlign = "left";
+                                                            depth.style.marginRight = 0;
+                                                            date.style.marginRight = 0;
+                                                            depth.style.marginLeft = event.clientX - padding + "px";
+                                                            date.style.marginLeft = event.clientX - padding+ "px";
+                                                        }
+
+                                                    });
+                                                </script>
+                                            </td></tr>
+
+                                            <!-- {% if forloop.counter0|divisibleby:date_label %}
+                                                <tr><td class="center"><p class="rotate">{{ depth.date }}</p></td></tr>
+                                            {% endif %} -->
+                                        </tbody>
+                                    </table>
+                                </td>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td><p>No data available in date range</p></td></tr>
+                        {% endif %}
+                        
+                        </td>
+                    </tbody>
+                </table>
+            </td></tr>
         </tbody>
     </table>
     
