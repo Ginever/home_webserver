@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    {% load IoT_hub_extras %}
     <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load IoT_hub_extras %}
     <title>Water tank depth</title>
     <script type="text/javascript" src="https://cdn.fusioncharts.com/fusioncharts/latest/fusioncharts.js"></script>
     <script type="text/javascript" src="https://cdn.fusioncharts.com/fusioncharts/latest/themes/fusioncharts.theme.fusion.js"></script>
@@ -161,7 +161,9 @@
 <body>
     <table>
         <tbody>
+            
             <tr><td>
+                <!-- Display current depth information in text form - Top Left of the screen -->
                 <div class="current-text">
                     <table height="100%" width="100%"><tbody>
                         <tr><td><h1>Water Tank Depth</h1></td></tr>
@@ -169,19 +171,33 @@
                         <tr><td><p>{{ date }}</p></td></tr>
                     </tbody></table>
                 </div>
+
+                <!-- The graphic that displays the depth of the water in the tank - Top Right of screen-->
                 <div class="chart-container" width="min-content" id="chart-container"></div>
             </td></tr>
 
+            <!-- Histogram at bottom of screen -->
+
+            <!-- Histogram column information -->
+            <!-- text is designed to move with cursor when over histogram and show column data that is hovered over -->
             <tr><td><p class="histogram-text" id="histogram-depth">{% get_first_depth depth_list %} cm</p></td></tr>
             <tr><td><p class="histogram-text" id="histogram-date">{% get_first_date depth_list %}</p></td></tr>
+
+            <!-- Actual histogram graph -->
+             <!-- I have coded this by hand as I want to add links to histogram columns in the future -->
             <tr><td>
                 <table height="min-content" id="histogram-outer">
                     <tbody class="table_reversed">
-                        <td height="min-content"><table><tbody>
+                        
+                        <!-- The y-labels of the histogram -->
+                        <td height="min-content">
+                            <table><tbody>
                             {% for y_label in histogram_y_labels reversed %}
                                <tr><td><p>{{y_label}}</p></td></tr> 
                             {% endfor %}
-                        </tbody></table></td>
+                            </tbody></table>
+                        </td>
+                        <!-- The bars of the histogram -->
                         {% if depth_list %}
                             {% for depth in depth_list reversed %}
                                 <td class="histogram">
@@ -189,12 +205,14 @@
                                         <tbody>
                                             <tr><td class="histogram">
                                                 <svg class="histogram-column" id="histogram-{{forloop.counter}}" width="100%" height="{% get_axis_height histogram_y_labels %}">
+                                                    <!-- offset the column from the top of the histogram by a percentage calculated based off of max depth and the current depth-->
                                                     <rect x="0", y="{% get_histogram_offset max_depth depth.depth %}" width="100%" height="100%" fill="blue"/>
                                                 </svg>
                                                 <script>
                                                     var svg = document.getElementById("histogram-{{forloop.counter}}");
                                                     var outer = document.getElementById("histogram-outer");
 
+                                                    //Add event listener to allow for the histogram information text to move along the histogram and update as the mouse is moved
                                                     svg.addEventListener("mouseover", function(event){
                                                         var depth = document.getElementById("histogram-depth");
                                                         var date = document.getElementById("histogram-date");
@@ -208,6 +226,7 @@
                                                         depth.style.visibility = "visible";
                                                         date.style.visibility = "visible";
                                                         
+                                                        //Invert direction text is orientated when halfway across histogram
                                                         if (outer_width/2 < event.clientX){
                                                             depth.style.textAlign = "right";
                                                             date.style.textAlign = "right";
